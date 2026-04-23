@@ -134,20 +134,23 @@ app.post('/api/checkout', async (req, res) => {
 // BUG 5: N+1 Query in Order History
 app.get('/api/orders', async (req, res) => {
   try {
-    // [BUG]: N+1 Query
-    const ordersRes = await pool.query('SELECT * FROM orders');
-    const orders = ordersRes.rows;
+    // Fixed: N+1 Query resolved with JOIN
+    const ordersRes = await pool.query(`
+      SELECT 
+        o.id as order_id, o.status,
+        u.id as user_id, u.username,
+        p.id as product_id, p.name as product_name, p.price
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN products p ON o.product_id = p.id
+    `);
     
-    const fullOrders = [];
-    for (const order of orders) {
-      const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
-      const productRes = await pool.query('SELECT * FROM products WHERE id = $1', [order.product_id]);
-      fullOrders.push({
-        ...order,
-        user: userRes.rows[0],
-        product: productRes.rows[0]
-      });
-    }
+    const fullOrders = ordersRes.rows.map(row => ({
+      id: row.order_id,
+      status: row.status,
+      user: { id: row.user_id, username: row.username },
+      product: { id: row.product_id, name: row.product_name, price: row.price }
+    }));
     
     res.json(fullOrders);
   } catch (err) {
