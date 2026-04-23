@@ -17,7 +17,7 @@ app.use((req, res, next) => {
 });
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+   connectionString: process.env.DATABASE_URL,
 });
 
 app.post('/api/login', async (req, res) => {
