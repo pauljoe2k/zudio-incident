@@ -137,9 +137,9 @@ app.get('/api/orders', async (req, res) => {
     `);
     
     const fullOrders = ordersRes.rows.map(row => ({
-      id: row.order_id,
+      id: row.order_id, 
       status: row.status,
-      user: { id: row.user_id, username: row.username },
+      user: { id:  row.user_id, username: row.username },
       product: { id: row.product_id, name: row.product_name, price: row.price }
     }));
     
@@ -151,5 +151,5 @@ app.get('/api/orders', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running in ${PORT}`);
 });
