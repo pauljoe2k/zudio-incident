@@ -5,6 +5,16 @@ const { Pool } = require('pg');
 const app = express();
 app.use(express.json());
 
+// Profiling middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[PROFILE] ${req.method} ${req.originalUrl} took ${duration}ms`);
+  });
+  next();
+});
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
