@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(express.json());
@@ -23,12 +24,18 @@ const pool = new Pool({
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // [BUG]: SQL Injection
+    // Fixed: SQL Injection and Plaintext passwords check
     const result = await pool.query(
-      `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`
+      `SELECT * FROM users WHERE username = $1`, [username]
     );
     if (result.rows.length > 0) {
-      res.json({ success: true, user: result.rows[0] });
+      const user = result.rows[0];
+      const match = await bcrypt.compare(password, user.password);
+      if (match) {
+        res.json({ success: true, user: { id: user.id, username: user.username } });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
     } else {
       res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -40,10 +47,11 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // [BUG]: Plaintext Passwords
+    // Fixed: Plaintext Passwords
+    const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       `INSERT INTO users (username, password) VALUES ($1, $2)`,
-      [username, password]
+      [username, hashedPassword]
     );
     res.json({ success: true });
   } catch (err) {
