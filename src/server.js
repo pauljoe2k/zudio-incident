@@ -20,11 +20,9 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// BUG 1 & 2: SQL Injection & Plaintext Passwords
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // Fixed: SQL Injection and Plaintext passwords check
     const result = await pool.query(
       `SELECT * FROM users WHERE username = $1`, [username]
     );
@@ -47,7 +45,6 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // Fixed: Plaintext Passwords
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       `INSERT INTO users (username, password) VALUES ($1, $2)`,
@@ -59,11 +56,9 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// BUG 3: Coupon Reuse
 app.post('/api/apply-coupon', async (req, res) => {
   const { code, order_id } = req.body;
   try {
-    // Fixed: Check if coupon is already used, and mark as used atomically
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -95,11 +90,9 @@ app.post('/api/apply-coupon', async (req, res) => {
   }
 });
 
-// BUG 4: Stock Decrement Bug (Race condition / No atomic decrement / Negative inventory)
 app.post('/api/checkout', async (req, res) => {
   const { product_id, user_id } = req.body;
   try {
-    // Fixed: Stock decrement in a transaction with atomic update and check
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -131,10 +124,8 @@ app.post('/api/checkout', async (req, res) => {
   }
 });
 
-// BUG 5: N+1 Query in Order History
 app.get('/api/orders', async (req, res) => {
   try {
-    // Fixed: N+1 Query resolved with JOIN
     const ordersRes = await pool.query(`
       SELECT 
         o.id as order_id, o.status,
