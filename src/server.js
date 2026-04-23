@@ -23,7 +23,7 @@ const pool = new Pool({
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // VULNERABLE: SQL Injection
+    // [BUG]: SQL Injection
     const result = await pool.query(
       `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`
     );
@@ -40,7 +40,7 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   try {
-    // VULNERABLE: Plaintext Passwords
+    // [BUG]: Plaintext Passwords
     await pool.query(
       `INSERT INTO users (username, password) VALUES ($1, $2)`,
       [username, password]
@@ -60,7 +60,7 @@ app.post('/api/apply-coupon', async (req, res) => {
     
     const coupon = couponRes.rows[0];
     
-    // VULNERABLE: No check if coupon is already used
+    // [BUG]: No check if coupon is already used
     await pool.query('UPDATE orders SET coupon_id = $1 WHERE id = $2', [coupon.id, order_id]);
     
     res.json({ success: true, discount: coupon.discount });
@@ -78,7 +78,7 @@ app.post('/api/checkout', async (req, res) => {
     
     const product = productRes.rows[0];
     
-    // VULNERABLE: Does not prevent stock from going below 0, not in a transaction
+    // [BUG]: Does not prevent stock from going below 0, not in a transaction
     if (product.stock > 0) {
       const newStock = product.stock - 1;
       await pool.query('UPDATE products SET stock = $1 WHERE id = $2', [newStock, product_id]);
@@ -95,7 +95,7 @@ app.post('/api/checkout', async (req, res) => {
 // BUG 5: N+1 Query in Order History
 app.get('/api/orders', async (req, res) => {
   try {
-    // VULNERABLE: N+1 Query
+    // [BUG]: N+1 Query
     const ordersRes = await pool.query('SELECT * FROM orders');
     const orders = ordersRes.rows;
     
